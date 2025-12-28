@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Pfad anzeigen</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+    }
+    .path {
+      font-size: 24px;
+      color: #007acc;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Aktueller Pfad</h1>
+  <div class="path" id="path"></div>
+
+  <script>
+    // Pfad aus der URL holen
+    const path = window.location.pathname;
+
+    // Führenden Slash entfernen
+    const cleanPath = path.replace(/^\/+/g, '');
+
+    // Wenn leer → Startseite
+    document.getElementById('path').textContent =
+      cleanPath || 'Startseite';
+  </script>
+
+</body>
+</html>
