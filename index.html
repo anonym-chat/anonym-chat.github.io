@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Pfad anzeigen</title>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -21,15 +22,19 @@
   <div class="path" id="path"></div>
 
   <script>
-    // Pfad aus der URL holen
-    const path = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
+    let path = params.get("path");
 
-    // Führenden Slash entfernen
-    const cleanPath = path.replace(/^\/+/g, '');
+    if (path) {
+      // Slash entfernen
+      path = path.replace(/^\/+/g, "");
+    } else {
+      // Normaler Aufruf /
+      path = window.location.pathname.replace(/^\/+/g, "");
+    }
 
-    // Wenn leer → Startseite
-    document.getElementById('path').textContent =
-      cleanPath || 'Startseite';
+    document.getElementById("path").textContent =
+      path || "Startseite";
   </script>
 
 </body>
