@@ -4,170 +4,207 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <title>Anonyme Nachrichten</title>
+
+  <!-- Schrift: dick, leicht abgerundet -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+
   <style>
     :root{
-      --accent: #0066cc;
-      --glass-bg: rgba(255,255,255,0.28);
+      --accent:#27ae60;            /* default send-button (enabled) */
+      --accent-strong:#1f9b4e;
+      --muted:#9aa4b2;
+      --card-bg: rgba(255,255,255,0.28);
       --glass-border: rgba(255,255,255,0.22);
-      --muted: #99a0ad;
-      --text: #0b1220;
-      --max-width: 720px;
-      --radius: 16px;
+      --text-dark: #0b1220;
+      --text-light: #ffffff;
+      --radius:18px;
+      --cta-size:72px;            /* circular buttons */
+      --tool-size:46px;           /* bottom-right link buttons */
+      --max-width:760px;
     }
 
-    /* Reset & layout - full viewport, centered, no scroll */
+    /* full page */
     html,body { height:100%; margin:0; }
     body{
+      font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
       -webkit-font-smoothing:antialiased;
-      font-family: Inter, Inter var, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      color:var(--text);
+      -moz-osx-font-smoothing:grayscale;
+      background: linear-gradient(45deg, #e9f5ff, #f9f5ff); /* overwritten by config */
+      overflow:hidden;
       display:flex;
       align-items:center;
       justify-content:center;
-      min-height:100vh;
-      overflow:hidden; /* no scroll */
-      background:linear-gradient(45deg, #e8f0ff 0%, #f8f6ff 100%); /* fallback */
-      padding:20px;
+      padding:18px;
     }
 
-    /* Background gradient will be overwritten by config when loaded */
-    .bg {
-      position:fixed; inset:0; z-index:-2;
-      background:linear-gradient(45deg,var(--bg1, #e8f0ff), var(--bg2, #f8f6ff));
-      transition:background .6s ease;
+    /* animated banner layer (optional) */
+    .bgBanner {
+      position:fixed; inset:0; z-index:-3; overflow:hidden;
     }
-    .bg::after{
-      content:"";
-      position:fixed; inset:0; backdrop-filter: blur(8px) saturate(1.05);
-      z-index:-1;
-      mix-blend-mode:overlay;
-      opacity:.8;
+    .bgBanner .bannerImg {
+      position:absolute; inset:0;
+      background-position:center center;
+      background-repeat:no-repeat;
+      background-size:cover;
+      filter: blur(6px) brightness(0.85) saturate(1.05);
+      transform: translateX(0);
+      animation: slideLR 18s linear infinite alternate;
+      will-change: transform;
+      opacity:0.95;
+    }
+    @keyframes slideLR {
+      from { transform: translateX(-12%); }
+      to   { transform: translateX(12%); }
     }
 
-    /* Container */
-    .container {
-      width:100%;
-      max-width:var(--max-width);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      min-height:calc(100vh - 40px);
+    /* fallback gradient background controlled by CSS variables set from JS */
+    .bgGradient {
+      position:fixed; inset:0; z-index:-4;
+      background: linear-gradient(45deg, var(--bg1, #e9f5ff), var(--bg2, #f9f5ff));
+      transition: background 600ms ease;
+      filter: blur(0.8px);
+    }
+
+    /* center card (positioned so it's always centered even on keyboard open) */
+    .stage {
+      position:fixed;
+      top:50%;
+      left:50%;
+      transform: translate(-50%, -50%);
+      width: min(calc(100vw - 40px), var(--max-width));
+      max-height: calc(100vh - 36px);
       box-sizing:border-box;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
 
-    /* Card - Liquid Glass */
+    /* card liquid glass */
     .card {
       width:100%;
       border-radius:var(--radius);
-      padding:20px;
+      padding:18px;
       box-sizing:border-box;
-      background: linear-gradient(180deg, rgba(255,255,255,0.36), rgba(255,255,255,0.18));
+      background: linear-gradient(180deg, rgba(255,255,255,0.44), rgba(255,255,255,0.22));
       border: 1px solid var(--glass-border);
-      box-shadow: 0 8px 30px rgba(6,24,50,0.12);
-      backdrop-filter: blur(10px) saturate(120%);
-      -webkit-backdrop-filter: blur(10px) saturate(120%);
+      box-shadow: 0 14px 40px rgba(6,24,50,0.12);
+      backdrop-filter: blur(8px) saturate(1.05);
+      -webkit-backdrop-filter: blur(8px) saturate(1.05);
+      overflow:visible;
       position:relative;
-      overflow:hidden;
     }
 
-    /* Top-left icon */
-    #cfgIcon {
-      position:absolute;
-      top:14px;
-      left:14px;
-      width:44px;
-      height:44px;
-      border-radius:10px;
+    /* header: icon left, title right */
+    .header {
+      display:flex;
+      gap:14px;
+      align-items:center;
+    }
+    .icon {
+      width:96px;
+      height:96px;
+      border-radius:12px;
       object-fit:cover;
-      box-shadow: 0 6px 18px rgba(6,24,50,0.12);
-      border:1px solid rgba(255,255,255,0.35);
-      background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.2));
-      display:none;
+      flex:0 0 96px;
+      box-shadow: 0 12px 32px rgba(6,24,50,0.14);
+      border: 2px solid rgba(255,255,255,0.16);
+      transform: translateZ(0);
+      transition: transform 280ms cubic-bezier(.2,.9,.2,1);
+      background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.2));
+    }
+    .icon:hover { transform: translateY(-6px) scale(1.02); }
+
+    .titleWrap {
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      min-width:0;
+    }
+    h1 {
+      margin:0;
+      font-size:20px;
+      font-weight:800; /* thick */
+      letter-spacing:0.2px;
+    }
+    .ownerSmall {
+      margin-top:6px;
+      color:var(--muted);
+      font-weight:600;
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
-    /* Header */
-    header { text-align:center; padding-top:6px; padding-bottom:6px; }
-    h1 { margin:0; font-size:20px; font-weight:700; letter-spacing:0.2px; }
-    .owner { margin-top:8px; color:var(--muted); font-weight:600; font-size:13px; }
-
-    /* Form layout */
+    /* form */
     .form {
       margin-top:14px;
       display:flex;
       flex-direction:column;
       gap:12px;
     }
+
     textarea {
       width:100%;
-      min-height:120px;
-      max-height:40vh;
-      resize:vertical;
-      padding:14px;
-      font-size:15px;
+      min-height:140px;
+      max-height:45vh;
+      font-size:16px;       /* prevents mobile zoom on focus */
+      padding:16px;
       border-radius:12px;
       border:1px solid rgba(12,20,40,0.06);
-      background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.6));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+      resize:vertical;
       outline:none;
       color:var(--text);
-      box-sizing:border-box;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.85);
+      transition: box-shadow 160ms ease, transform 160ms ease;
     }
     textarea:focus {
-      box-shadow:0 8px 20px rgba(2, 92, 214, 0.12);
-      border-color: var(--accent);
+      box-shadow: 0 12px 30px rgba(2,92,214,0.10);
+      transform: translateY(-2px);
+      border-color: rgba(2,92,214,0.12);
     }
 
-    /* Row */
-    .row { display:flex; align-items:center; gap:12px; justify-content:space-between; flex-wrap:wrap; }
+    /* turnstile sits to the right of controls on larger, below on small screens */
+    .row {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:14px;
+      flex-wrap:wrap;
+    }
+    .turnstileWrap { display:flex; align-items:center; justify-content:center; min-height:48px; }
 
-    /* Turnstile placement */
-    .turnstile-wrap { display:flex; align-items:center; gap:8px; justify-content:flex-end; min-height:48px; }
-    /* ensure widget won't overlay other elements */
-    .turnstile-wrap > * { pointer-events:auto; }
-
-    /* Buttons */
-    .controls { display:flex; gap:10px; align-items:center; }
-    button {
-      appearance:none;
+    /* main submit: circular CTA, centered */
+    .submitWrap { display:flex; justify-content:center; align-items:center; margin-top:4px; }
+    .cta {
+      width:var(--cta-size);
+      height:var(--cta-size);
+      border-radius:50%;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      color:#fff;
+      background: linear-gradient(180deg,var(--accent),var(--accent-strong));
       border:none;
-      padding:10px 14px;
-      border-radius:10px;
-      background:var(--accent);
-      color:white;
-      font-weight:700;
       cursor:pointer;
-      box-shadow: 0 8px 24px rgba(2, 92, 214, 0.14);
-      transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+      box-shadow: 0 18px 48px rgba(39,174,96,0.18);
+      transition: transform 140ms cubic-bezier(.2,.9,.2,1), box-shadow 140ms;
+      -webkit-tap-highlight-color:transparent;
     }
-    button:active { transform:translateY(1px); }
-    button.secondary {
-      background: rgba(255,255,255,0.12);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.06);
+    .cta:active { transform: translateY(2px) scale(.98); box-shadow: 0 10px 28px rgba(39,174,96,0.18); }
+    .cta.disabled {
+      background: linear-gradient(180deg, #c9c9c9, #bdbdbd);
+      opacity:0.7;
       box-shadow:none;
-      backdrop-filter: blur(6px);
+      cursor:not-allowed;
     }
-    button.ghost {
-      background:transparent;
-      color:var(--accent);
-      border:1px solid rgba(2,92,214,0.12);
-    }
-    button[disabled]{ opacity:.5; cursor:not-allowed; transform:none; }
 
-    /* small text, errors */
-    .small { color:var(--muted); font-size:13px; }
-    .error { color:#d33; font-size:14px; display:none; }
-
-    /* sent area */
-    .sent {
-      margin-top:12px;
-      display:none;
-      gap:10px;
-      align-items:flex-start;
-      flex-direction:column;
-    }
+    /* small sent area below textarea */
+    .sentRow { display:flex; gap:12px; align-items:center; justify-content:space-between; }
     .copybox {
-      width:100%;
+      flex:1;
       padding:12px;
       border-radius:10px;
       background: rgba(12,20,40,0.04);
@@ -177,316 +214,401 @@
       word-break:break-word;
     }
 
-    /* Overlay shown after send */
+    /* overlay shown after send */
     .overlay {
-      position:absolute;
-      inset:0;
-      background: rgba(0,0,0,0.52);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:40;
-      opacity:0;
-      pointer-events:none;
-      transition: opacity .22s ease;
+      position:fixed; inset:0;
+      background: rgba(0,0,0,0.56);
+      display:flex; align-items:center; justify-content:center;
+      z-index:60;
+      opacity:0; pointer-events:none; transition:opacity 220ms;
     }
     .overlay.show { opacity:1; pointer-events:auto; }
-
     .modal {
-      width:calc(100% - 48px);
-      max-width:520px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
+      width: min(92%, 640px);
       border-radius:14px;
-      padding:18px;
-      box-shadow: 0 24px 60px rgba(2,9,23,0.6);
-      color: #fff;
-      border:1px solid rgba(255,255,255,0.06);
+      padding:20px;
       text-align:center;
-      transform: translateY(8px);
-      animation: pop .28s cubic-bezier(.2,.9,.2,1);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      color:#fff;
+      box-shadow: 0 28px 80px rgba(0,0,0,0.6);
+      animation: pop .28s cubic-bezier(.16,.8,.24,1);
     }
-    @keyframes pop {
-      from { transform: translateY(18px) scale(.98); opacity:0; } to { transform: translateY(0) scale(1); opacity:1; }
-    }
-    .modal .title { font-weight:800; font-size:18px; margin-bottom:6px; }
-    .modal .desc { color: rgba(255,255,255,0.85); font-size:14px; margin-bottom:12px; }
-    .modal .links { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:12px; }
-    .modal a {
-      display:inline-flex; align-items:center; gap:8px;
-      padding:8px 10px; background:rgba(255,255,255,0.06); color:white; border-radius:10px; text-decoration:none;
-      font-weight:700; font-size:13px;
-    }
+    .modal .title { font-weight:800; font-size:18px; margin-bottom:8px; }
+    .modal .desc { color: rgba(255,255,255,0.9); margin-bottom:12px; }
 
-    /* Footer small */
-    footer { margin-top:10px; font-size:12px; color:var(--muted); text-align:center; }
+    /* overlay action buttons (round) */
+    .overlayActions { display:flex; gap:18px; align-items:center; justify-content:center; flex-wrap:wrap; margin-top:8px; }
+    .roundAction {
+      width:82px; height:82px; border-radius:50%;
+      background: #fff; color:#111; display:flex; align-items:center; justify-content:center;
+      box-shadow: 0 16px 44px rgba(0,0,0,0.28); border:none; cursor:pointer;
+      transition: transform 120ms;
+      flex-direction:column;
+    }
+    .roundAction:active { transform: translateY(2px) scale(.98); }
+    .roundActionLabel { font-size:12px; margin-top:8px; font-weight:700; color: rgba(255,255,255,0.95); }
 
-    /* Toast */
+    /* bottom-right tool-links (always visible) */
+    .tools {
+      position:fixed; right:18px; bottom:18px; display:flex; gap:10px; z-index:50;
+    }
+    .toolBtn {
+      width:var(--tool-size); height:var(--tool-size); border-radius:10px;
+      display:inline-flex; align-items:center; justify-content:center;
+      background:rgba(255,255,255,0.9); box-shadow: 0 8px 18px rgba(2,9,23,0.12);
+      border:1px solid rgba(12,20,40,0.04);
+      cursor:pointer; transition: transform 120ms;
+    }
+    .toolBtn:active { transform: translateY(2px); }
+
+    /* toast */
     .toast {
-      position:fixed;
-      left:50%;
-      transform:translateX(-50%) translateY(16px);
-      bottom:18px;
-      background:#0b1220;
-      color:white;
-      padding:10px 14px;
-      border-radius:10px;
-      box-shadow:0 12px 40px rgba(4,10,40,0.4);
-      opacity:0; transition:opacity .18s, transform .18s;
-      z-index:60;
-      pointer-events:none;
+      position:fixed; left:50%; transform:translateX(-50%) translateY(12px);
+      bottom:18px; background:#111; color:#fff; padding:10px 14px; border-radius:10px;
+      box-shadow:0 12px 36px rgba(6,24,50,0.4); opacity:0; transition:opacity 160ms;
+      z-index:120;
     }
-    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
-    /* Mobile tweaks */
-    @media (max-width:420px){
-      .card { padding:14px; border-radius:12px; }
-      #cfgIcon { width:40px; height:40px; top:12px; left:12px; }
-      textarea { min-height:110px; }
+    /* responsive tweaks */
+    @media (max-width:520px) {
+      .icon { width:76px; height:76px; flex:0 0 76px; border-radius:10px; }
+      h1 { font-size:18px; }
+      .ownerSmall { font-size:12px; }
+      .cta { width:64px; height:64px; }
+      .roundAction { width:68px; height:68px; }
     }
 
+    @keyframes pop { from { transform: translateY(8px) scale(.98); opacity:0; } to { transform:none; opacity:1; } }
   </style>
 
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
-  <div class="bg" id="bg"></div>
+  <!-- Background layers -->
+  <div class="bgGradient" id="bgGradient"></div>
+  <div class="bgBanner" id="bgBanner" aria-hidden="true">
+    <div class="bannerImg" id="bannerImg"></div>
+  </div>
 
-  <div class="container">
-    <div class="card" id="card">
-      <img id="cfgIcon" alt="Icon" />
-      <header>
-        <h1 id="title">Anonyme Nachrichten</h1>
-        <div id="ownerLine" class="owner">Lade…</div>
-      </header>
+  <!-- centered stage -->
+  <div class="stage" id="stage">
+    <div class="card" id="card" role="main" aria-live="polite">
+      <div class="header">
+        <img id="cfgIcon" class="icon" src="" alt="Icon" style="display:none" />
+        <div class="titleWrap">
+          <h1 id="pageTitle">Anonyme Nachricht</h1>
+          <div id="ownerSmall" class="ownerSmall">…</div>
+        </div>
+      </div>
 
-      <!-- main form area -->
-      <div id="formWrap" class="form" aria-live="polite">
-        <div id="formInner">
-          <div class="small" id="toLabel">Deine anonyme Nachricht an <strong id="ownerName">…</strong>:</div>
-          <textarea id="message" placeholder="Schreibe deine Nachricht" autocomplete="off" inputmode="text" spellcheck="true"></textarea>
+      <div class="form" id="formArea">
+        <textarea id="message" placeholder="Schreibe deine Nachricht" maxlength="200" spellcheck="true" autocomplete="off"></textarea>
 
-          <div class="row">
-            <div class="turnstile-wrap" id="turnstileWrapper" aria-hidden="false"></div>
-            <div class="controls">
-              <button id="submitBtn" disabled>Absenden</button>
-            </div>
-          </div>
+        <div class="row">
+          <div class="turnstileWrap" id="turnstileWrapper" aria-hidden="false"></div>
+        </div>
 
-          <div id="resultArea" class="sent" aria-hidden="true">
+        <div class="submitWrap">
+          <!-- main circular CTA: icon (paper plane SVG) -->
+          <button id="submitBtn" class="cta disabled" aria-disabled="true" title="Absenden">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M2 21l20-9L2 3v7l15 2-15 2v7z" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="sentRow" style="margin-top:8px;">
+          <div id="resultArea" style="display:none; flex:1;">
             <div class="small">Gesendet — Klick zum Kopieren:</div>
-            <div id="sentBox" class="copybox" title="Klicken, um kopieren">—</div>
+            <div id="sentBox" class="copybox" title="Klicken zum Kopieren">—</div>
           </div>
-
-          <div id="error" class="error" role="alert"></div>
+          <div id="sendNote" class="small" style="color:var(--muted);"> </div>
         </div>
       </div>
-
-      <footer id="footer" class="small"> </footer>
-
-      <!-- Overlay shown after send containing links + buttons -->
-      <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-hidden="true">
-        <div class="modal" id="modal">
-          <div class="title">Nachricht gesendet ✅</div>
-          <div class="desc">Deine anonyme Nachricht wurde übermittelt.</div>
-
-          <div class="links" id="linksArea">
-            <!-- links injected here -->
-          </div>
-
-          <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-            <button id="againBtn">Noch eine Nachricht</button>
-            <button id="myMsgsBtn" class="secondary">Eigene Nachrichten erhalten</button>
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
 
+  <!-- overlay after send -->
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="title">Nachricht gesendet ✅</div>
+      <div class="desc">Danke — deine anonyme Nachricht wurde übermittelt.</div>
+
+      <div id="overlayLinks" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;"></div>
+
+      <div class="overlayActions" style="margin-top:12px;">
+        <button id="againBtn" class="roundAction" title="Neue Nachricht">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 5v2a5 5 0 1 1-5 5H4a8 8 0 1 0 8-8z" fill="#111"/></svg>
+          <div class="roundActionLabel">Noch eine</div>
+        </button>
+
+        <button id="myMsgsBtn" class="roundAction" title="Eigene Nachrichten">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M3 5h18v12H7l-4 4V5z" fill="#111"/></svg>
+          <div class="roundActionLabel">Eigene</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- bottom-right tool links (always visible) -->
+  <div class="tools" id="tools"></div>
+
+  <!-- toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script>
 (function(){
-  // ---------------- CONFIG / CONSTANTS ----------------
+  // ------------------ INDEX.HTML-CONFIG (Icons für Tools live in dieser Datei) ------------------
+  // Hier kannst du die Icon-URLs für die Tool-Buttons (Discord/YouTube/WhatsApp) direkt im index.html anpassen:
+  const TOOL_ICON = {
+    discord: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/discord.svg",   // default: svg-hosted
+    youtube: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/youtube.svg",
+    whatsapp: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/whatsapp.svg"
+  };
+  // -----------------------------------------------------------------------------------------------
+
+  // Server & Turnstile (falls nötig anpassen)
   const WORKER_URL = "https://weathered-tree-661a.anonymenachrichtholder.workers.dev";
   const TURNSTILE_SITEKEY = "0x4AAAAAACJjDP0IZOtMJtiL";
-  // ---------------------------------------------------
 
-  // Elements
-  const ownerLine = document.getElementById('ownerLine');
-  const ownerNameEl = document.getElementById('ownerName');
-  const titleEl = document.getElementById('title');
+  // DOM
+  const pageTitle = document.getElementById('pageTitle');
+  const ownerSmall = document.getElementById('ownerSmall');
+  const cfgIcon = document.getElementById('cfgIcon');
+  const bannerImg = document.getElementById('bannerImg');
+  const bgGradient = document.getElementById('bgGradient');
+  const bgBanner = document.getElementById('bgBanner');
+
   const messageEl = document.getElementById('message');
   const submitBtn = document.getElementById('submitBtn');
   const turnstileWrapper = document.getElementById('turnstileWrapper');
-  const sentBox = document.getElementById('sentBox');
   const resultArea = document.getElementById('resultArea');
-  const errorEl = document.getElementById('error');
-  const toast = document.getElementById('toast');
+  const sentBox = document.getElementById('sentBox');
   const overlay = document.getElementById('overlay');
-  const modal = document.getElementById('modal');
-  const linksArea = document.getElementById('linksArea');
+  const overlayLinks = document.getElementById('overlayLinks');
+  const tools = document.getElementById('tools');
+  const toast = document.getElementById('toast');
   const againBtn = document.getElementById('againBtn');
   const myMsgsBtn = document.getElementById('myMsgsBtn');
-  const cfgIcon = document.getElementById('cfgIcon');
-  const bg = document.getElementById('bg');
-  const footer = document.getElementById('footer');
+  const sendNote = document.getElementById('sendNote');
 
+  // state
+  let cfg = null;
   let currentBezeichnung = null;
   let lastToken = null;
   let widgetId = null;
-  let cfg = null;
 
-  // --- Helpers ---
-  function qs(name) {
-    const u = new URL(location.href);
-    return u.searchParams.get(name);
+  // helpers
+  function qs(name){ return new URL(location.href).searchParams.get(name); }
+  function resolveRequestedPath(){
+    const p = qs('path') || location.pathname;
+    let clean = (p||'').replace(/^\/+|\/+$/g,'');
+    if(!clean) clean = 'index';
+    return clean;
   }
-
-  // resolve requested path: query param 'path' first else pathname
-  function resolveRequestedPath() {
-    const qsPath = qs('path');
-    let p = qsPath || location.pathname;
-    p = (p || "").replace(/^\/+|\/+$/g, "");
-    if (!p) p = "index";
-    return p;
-  }
-
-  const requested = resolveRequestedPath();
-
   function buildVariants(name){
-    const variants = [];
-    if (!name) return ['index'];
-    variants.push(name);
+    const v = [];
+    if(name) v.push(name);
     const lower = name.toLowerCase();
-    if (!variants.includes(lower)) variants.push(lower);
+    if(!v.includes(lower)) v.push(lower);
     const cap = name.charAt(0).toUpperCase() + name.slice(1);
-    if (!variants.includes(cap)) variants.push(cap);
-    if (!variants.includes('index')) variants.push('index');
-    return variants;
+    if(!v.includes(cap)) v.push(cap);
+    if(!v.includes('index')) v.push('index');
+    return v;
   }
-
   async function fetchConfigWithVariants(name){
     const variants = buildVariants(name);
-    for (const v of variants) {
+    for(const v of variants){
       const url = '/parent/' + encodeURIComponent(v) + '.json';
-      try {
-        const r = await fetch(url, { cache: 'no-store' });
-        if (r.ok) {
-          const j = await r.json();
-          return { json: j, variant: v, url };
-        }
-      } catch(e){
-        // ignore and try next
-      }
+      try{
+        const r = await fetch(url, {cache:'no-store'});
+        if(r.ok) { const j = await r.json(); return { json:j, variant:v, url }; }
+      }catch(e){}
     }
-    // not found
     return null;
   }
 
-  // If requested is 'index' -> show start page text only
-  function renderStartPage() {
+  // requested path
+  const requested = resolveRequestedPath();
+
+  // If index/start page requested -> simple text page
+  function renderStartPage(){
     document.body.style.overflow = 'hidden';
-    // minimal UI: replace card content with single text
     const card = document.getElementById('card');
-    card.innerHTML = '<div style="padding:28px;text-align:center;"><h2 style="margin:0 0 8px 0">Startseite</h2><div class="small">hier gibt es noch nichts auf der ganzen Seite</div></div>';
+    card.innerHTML = '<div style="padding:28px;text-align:center;"><h2 style="margin:0 0 8px 0">Startseite</h2><div class="ownerSmall">hier gibt es noch nichts auf der ganzen Seite</div></div>';
   }
 
-  // Load config unless we're on start page
+  // load config (with fallback redirect if not present)
   async function loadConfig(){
-    if (requested === 'index') {
+    if(requested === 'index'){
       renderStartPage();
       return;
     }
-
-    ownerLine.textContent = 'Lade…';
     const res = await fetchConfigWithVariants(requested);
-    if (!res) {
-      // wenn die Konfig nicht gefunden wurde -> Weiterleitung zur Startseite
-      // avoid loop: if we're already at '/', do startpage render
-      if (location.pathname === '/' || location.pathname === '/index.html' || location.pathname === '') {
+    if(!res){
+      // redirect to homepage if config missing (requirement)
+      // if already root, show start page
+      if(location.pathname === '/' || location.pathname === '/index.html' || location.pathname === '') {
         renderStartPage();
         return;
       }
       location.href = '/';
       return;
     }
-
     cfg = res.json;
-
-    // Minimal validation
-    if (!cfg.owner || !cfg.bezeichnung) {
-      ownerLine.textContent = 'Ungültige Konfiguration';
-      errorEl.style.display = 'block';
-      errorEl.textContent = "Konfiguration benötigt mindestens 'owner' und 'bezeichnung'.";
+    if(!cfg.owner || !cfg.bezeichnung){
+      // invalid: show error in card
+      ownerSmall.textContent = 'Ungültige Konfiguration — owner & bezeichnung benötigt';
       return;
     }
 
     currentBezeichnung = cfg.bezeichnung;
-    ownerLine.textContent = `Anonyme Nachrichten an ${cfg.owner}`;
-    ownerNameEl.textContent = cfg.owner;
-    titleEl.textContent = cfg.owner ? `Anonyme Nachrichten an ${cfg.owner}` : 'Anonyme Nachrichten';
+    pageTitle.textContent = `Anonyme Nachricht`;
+    ownerSmall.textContent = `an ${cfg.owner}`;
 
-    // Icon
-    if (cfg.icon_url) {
+    // icon
+    if(cfg.icon_url){
       cfgIcon.src = cfg.icon_url;
       cfgIcon.style.display = 'block';
     }
 
-    // Background colors: two colors expected bg_color1, bg_color2
-    if (cfg.bg_color1 && cfg.bg_color2) {
-      bg.style.background = `linear-gradient(45deg, ${cfg.bg_color1}, ${cfg.bg_color2})`;
-      // tweak CSS variables
-      document.documentElement.style.setProperty('--bg1', cfg.bg_color1);
-      document.documentElement.style.setProperty('--bg2', cfg.bg_color2);
+    // text color (light/dark or hex)
+    if(cfg.text_color){
+      // allow 'light' or 'dark' or hex
+      if(cfg.text_color === 'light' || cfg.text_color === 'white') {
+        document.documentElement.style.setProperty('--text', '#ffffff');
+        document.documentElement.style.setProperty('--muted', 'rgba(255,255,255,0.78)');
+      } else if(cfg.text_color === 'dark' || cfg.text_color === 'black') {
+        document.documentElement.style.setProperty('--text', '#0b1220');
+        document.documentElement.style.setProperty('--muted', '#9aa4b2');
+      } else {
+        // assume hex
+        document.documentElement.style.setProperty('--text', cfg.text_color);
+        // auto-muted: slightly faded
+        document.documentElement.style.setProperty('--muted', cfg.text_color + '80');
+      }
+      // apply to elements
+      document.getElementById('pageTitle').style.color = getComputedStyle(document.documentElement).getPropertyValue('--text');
+      ownerSmall.style.color = getComputedStyle(document.documentElement).getPropertyValue('--muted');
     }
 
-    // Footer hints / optional author
-    footer.textContent = cfg.footer_text || '';
+    // background: gradient or banner
+    if(cfg.bg_type === 'banner' && cfg.banner_url){
+      // show animated banner
+      bannerImg.style.backgroundImage = `url("${cfg.banner_url}")`;
+      bgBanner.style.display = 'block';
+      bgGradient.style.display = 'none';
+      // banner animation speed/blur can be tuned by config optionally
+    } else {
+      // gradient
+      const c1 = cfg.bg_color1 || '#e9f5ff';
+      const c2 = cfg.bg_color2 || '#f9f5ff';
+      document.documentElement.style.setProperty('--bg1', c1);
+      document.documentElement.style.setProperty('--bg2', c2);
+      bgGradient.style.display = 'block';
+      bgBanner.style.display = 'none';
+    }
 
-    // Render turnstile now that config OK
+    // footer text if provided
+    if(cfg.footer_text) {
+      // append minimal footer under card (not interfering)
+      const footer = document.createElement('div');
+      footer.className = 'ownerSmall';
+      footer.style.marginTop = '8px';
+      footer.style.textAlign = 'center';
+      footer.textContent = cfg.footer_text;
+      document.getElementById('card').appendChild(footer);
+    }
+
+    // prepare tool buttons (always visible) - only if links present
+    setupTools(cfg);
+
+    // prepare overlay links too
+    prepareOverlayLinks(cfg);
+
+    // render turnstile after config loaded
     renderTurnstile();
-
-    // Prepare links area (but hidden until message sent)
-    prepareLinksFromConfig(cfg);
   }
 
-  function prepareLinksFromConfig(cfg) {
-    linksArea.innerHTML = '';
-    const links = [];
-    if (cfg.discord) {
-      links.push({ href: cfg.discord, label: 'Discord', emoji: '🗨️' });
+  // Tools at bottom-right (always visible)
+  function setupTools(cfg){
+    tools.innerHTML = '';
+    const list = [
+      { key:'discord', url: cfg.discord },
+      { key:'youtube', url: cfg.youtube },
+      { key:'whatsapp', url: cfg.whatsapp }
+    ];
+    for(const it of list){
+      if(!it.url) continue;
+      const btn = document.createElement('a');
+      btn.className = 'toolBtn';
+      btn.href = it.url;
+      btn.target = '_blank';
+      btn.rel = 'noopener noreferrer';
+      btn.title = it.key.charAt(0).toUpperCase() + it.key.slice(1);
+      // icon image - from INDEX.HTML config constant
+      const img = document.createElement('img');
+      img.src = TOOL_ICON[it.key] || '';
+      img.alt = it.key;
+      img.style.width = '20px';
+      img.style.height = '20px';
+      img.style.objectFit = 'contain';
+      btn.appendChild(img);
+      tools.appendChild(btn);
     }
-    if (cfg.youtube) {
-      links.push({ href: cfg.youtube, label: 'YouTube', emoji: '▶️' });
-    }
-    if (cfg.whatsapp) {
-      links.push({ href: cfg.whatsapp, label: 'WhatsApp', emoji: '📱' });
-    }
-    // Inject now (but kept hidden until overlay open)
-    for (const l of links) {
+  }
+
+  // prepare overlay links (visible in overlay after send)
+  function prepareOverlayLinks(cfg){
+    overlayLinks.innerHTML = '';
+    const list = [
+      { key:'discord', url: cfg.discord, label:'Discord' },
+      { key:'youtube', url: cfg.youtube, label:'YouTube' },
+      { key:'whatsapp', url: cfg.whatsapp, label:'WhatsApp' }
+    ];
+    for(const it of list){
+      if(!it.url) continue;
       const a = document.createElement('a');
-      a.href = l.href;
-      a.rel = 'noopener noreferrer';
+      a.href = it.url;
       a.target = '_blank';
-      a.textContent = `${l.emoji} ${l.label}`;
-      linksArea.appendChild(a);
+      a.rel = 'noopener noreferrer';
+      a.style.display = 'inline-flex';
+      a.style.alignItems = 'center';
+      a.style.gap = '8px';
+      a.style.padding = '10px 12px';
+      a.style.borderRadius = '10px';
+      a.style.background = 'rgba(255,255,255,0.08)';
+      a.style.color = '#fff';
+      a.style.textDecoration = 'none';
+      a.style.fontWeight = '700';
+      // icon from index.html config
+      const img = document.createElement('img');
+      img.src = TOOL_ICON[it.key] || '';
+      img.alt = it.key;
+      img.style.width = '18px';
+      img.style.height = '18px';
+      img.style.objectFit = 'contain';
+      a.appendChild(img);
+      const span = document.createElement('span');
+      span.textContent = it.label;
+      a.appendChild(span);
+      overlayLinks.appendChild(a);
     }
   }
 
-  // turnstile render
+  // Turnstile rendering - place it but ensure it does not block textarea
   function renderTurnstile(){
     const wait = () => {
-      if (window.turnstile && typeof window.turnstile.render === 'function') {
+      if(window.turnstile && typeof window.turnstile.render === 'function'){
         widgetId = window.turnstile.render(turnstileWrapper, {
           sitekey: TURNSTILE_SITEKEY,
           callback: onTurnstileSuccess,
-          'error-callback': onTurnstileError,
-          'expired-callback': onTurnstileExpired,
+          "error-callback": onTurnstileError,
+          "expired-callback": onTurnstileExpired,
           theme: 'light'
         });
-        // ensure the widget container does not cover the textarea and allows typing
         turnstileWrapper.style.pointerEvents = 'auto';
       } else {
         setTimeout(wait, 200);
@@ -494,175 +616,133 @@
     };
     wait();
   }
+  function onTurnstileSuccess(token){ lastToken = token; validate(); }
+  function onTurnstileError(){ lastToken = null; showToast('Captcha-Fehler'); validate(); }
+  function onTurnstileExpired(){ lastToken = null; validate(); }
 
-  function onTurnstileSuccess(token){
-    lastToken = token;
-    validateAndToggleSubmit();
-  }
-  function onTurnstileError(){ showToast('Captcha-Fehler, bitte erneut versuchen.'); lastToken = null; validateAndToggleSubmit(); }
-  function onTurnstileExpired(){ lastToken = null; validateAndToggleSubmit(); }
-
-  // Validation: keep silent UI (no "3-200" hints), but enforce same server-side constraints
-  function validateAndToggleSubmit(){
+  // Validation: no visible 3-200 hints, but enforce internally
+  function validate(){
     const txt = (messageEl.value || '').trim();
-    const okLen = txt.length >= 3 && txt.length <= 200;
-    if (lastToken && okLen) {
-      submitBtn.disabled = false;
+    const ok = txt.length >= 3 && txt.length <= 200 && lastToken;
+    if(ok){
+      submitBtn.classList.remove('disabled');
+      submitBtn.setAttribute('aria-disabled','false');
     } else {
-      submitBtn.disabled = true;
+      submitBtn.classList.add('disabled');
+      submitBtn.setAttribute('aria-disabled','true');
     }
   }
 
-  messageEl.addEventListener('input', () => {
-    // allow typing during captcha verification: do NOT disable textarea
-    validateAndToggleSubmit();
-  });
+  messageEl.addEventListener('input', validate);
+  // prevent mobile auto-zoom (font-size set to 16px above)
 
-  // Submit handler
-  submitBtn.addEventListener('click', async () => {
-    clearError();
-    submitBtn.disabled = true;
-    const raw = messageEl.value || "";
-    const cleanedForDisplay = raw.replace(/\r?\n/g, ' ').trim();
+  // submit event
+  submitBtn.addEventListener('click', async (e) => {
+    if(submitBtn.classList.contains('disabled')) return;
+    submitBtn.classList.add('disabled');
+    sendNote.textContent = 'Sende…';
+    try{
+      const raw = messageEl.value || '';
+      const cleanedForDisplay = raw.replace(/\r?\n/g, ' ').trim();
+      const payload = { bezeichnung: currentBezeichnung, token: lastToken, message: raw };
 
-    const payload = {
-      bezeichnung: currentBezeichnung,
-      token: lastToken,
-      message: raw
-    };
-
-    try {
       const resp = await fetch(WORKER_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {'Content-Type':'application/json'},
         body: JSON.stringify(payload)
       });
 
       let data = null;
       try { data = await resp.json(); } catch(e){}
 
-      if (!resp.ok) {
+      if(!resp.ok){
         const errMsg = (data && data.error) ? data.error : `Serverantwort ${resp.status}`;
         showToast(errMsg);
-        submitBtn.disabled = false;
         return;
       }
-
-      if (!data) {
-        showToast('Ungültige Serverantwort');
-        submitBtn.disabled = false;
-        return;
-      }
-
-      if (data.status !== 'SUCCESS') {
-        const err = data.error || 'Unbekannter Fehler';
+      if(!data || data.status !== 'SUCCESS'){
+        const err = (data && data.error) || 'Unbekannter Fehler';
         showToast(err);
-        submitBtn.disabled = false;
         return;
       }
 
       // success
       sentBox.textContent = cleanedForDisplay || '(leere Nachricht)';
-      resultArea.style.display = 'flex';
-      resultArea.setAttribute('aria-hidden', 'false');
+      resultArea.style.display = 'block';
+      sendNote.textContent = '';
       messageEl.value = '';
       lastToken = null;
-      try { if (window.turnstile && typeof window.turnstile.reset === 'function') window.turnstile.reset(widgetId); } catch(e){}
-      // show overlay with links + buttons
+      try { if(window.turnstile && typeof window.turnstile.reset === 'function') window.turnstile.reset(widgetId); } catch(e){}
+
       openOverlay();
 
-    } catch (err) {
+    } catch(err){
       console.error(err);
-      showToast('Netzwerkfehler: ' + (err.message || err));
+      showToast('Netzwerkfehler');
     } finally {
-      submitBtn.disabled = false;
+      validate();
+      sendNote.textContent = '';
     }
   });
 
-  // copy sent text
+  // sentBox copy
   sentBox.addEventListener('click', () => {
     const txt = sentBox.textContent || '';
-    if (!txt) return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(txt).then(() => {
-        const prev = sentBox.textContent;
-        sentBox.textContent = 'Kopiert ✅ — ' + prev;
-        setTimeout(()=> sentBox.textContent = prev, 1400);
-      }).catch(() => fallbackCopy(txt));
-    } else fallbackCopy(txt);
-  });
-
-  function fallbackCopy(txt) {
-    try {
-      const ta = document.createElement('textarea');
-      ta.value = txt; document.body.appendChild(ta); ta.select();
-      document.execCommand('copy'); document.body.removeChild(ta);
+    if(!txt) return;
+    navigator.clipboard?.writeText(txt).then(() => {
       const prev = sentBox.textContent;
       sentBox.textContent = 'Kopiert ✅ — ' + prev;
       setTimeout(()=> sentBox.textContent = prev, 1400);
-    } catch(e) {
-      showToast('Kopieren fehlgeschlagen');
-    }
-  }
+    }).catch(()=> {
+      // fallback
+      try {
+        const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        const prev = sentBox.textContent;
+        sentBox.textContent = 'Kopiert ✅ — ' + prev;
+        setTimeout(()=> sentBox.textContent = prev, 1400);
+      } catch(e) { showToast('Kopieren fehlgeschlagen'); }
+    });
+  });
 
-  // Overlay control
+  // overlay
   function openOverlay(){
     overlay.classList.add('show');
     overlay.setAttribute('aria-hidden','false');
-    // focus first button for accessibility
     againBtn.focus();
   }
-
   function closeOverlay(){
     overlay.classList.remove('show');
     overlay.setAttribute('aria-hidden','true');
-    // clear sent display
     resultArea.style.display = 'none';
-    resultArea.setAttribute('aria-hidden','true');
     sentBox.textContent = '';
   }
-
-  againBtn.addEventListener('click', () => {
-    closeOverlay();
-    // re-render turnstile for fresh token
-    try { if (window.turnstile && typeof window.turnstile.reset === 'function') window.turnstile.reset(widgetId); } catch(e){}
-    messageEl.focus();
-  });
-
-  myMsgsBtn.addEventListener('click', () => {
-    // go to start page (explicit requirement)
-    location.href = '/';
-  });
+  againBtn.addEventListener('click', () => { closeOverlay(); messageEl.focus(); });
+  myMsgsBtn.addEventListener('click', () => { location.href = '/'; });
 
   // toast
   let toastTimer = null;
-  function showToast(msg, ms = 4000) {
+  function showToast(msg, ms = 4200){
     toast.textContent = msg;
     toast.classList.add('show');
-    if (toastTimer) clearTimeout(toastTimer);
+    if(toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(()=> toast.classList.remove('show'), ms);
   }
 
-  function clearError(){
-    errorEl.style.display = 'none';
-    errorEl.textContent = '';
-  }
-  function showError(msg){
-    errorEl.textContent = msg;
-    errorEl.style.display = 'block';
-  }
-
-  // Ctrl/Cmd+Enter to send
-  messageEl.addEventListener('keydown', (e)=>{
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      if (!submitBtn.disabled) submitBtn.click();
+  // keyboard: Ctrl/Cmd+Enter send
+  messageEl.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      if(!submitBtn.classList.contains('disabled')) submitBtn.click();
     }
   });
 
-  // Prepare and load config
+  // INITIALIZE
   loadConfig();
 
-  // If user lands directly on '/' or 'index' we show startpage (handled in loadConfig)
+  // accessibility: escape overlay with ESC
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && overlay.classList.contains('show')) closeOverlay();
+  });
 })();
 </script>
 </body>
