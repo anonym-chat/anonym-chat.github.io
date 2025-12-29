@@ -2,60 +2,303 @@
 <html lang="de">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <title>Anonyme Nachrichten</title>
   <style>
-    :root { --accent:#0066cc; --muted:#666; --bg:#f7f8fb; }
-    body { font-family: Inter, system-ui, Arial; background:var(--bg); color:#111; margin:0; padding:28px; display:flex; justify-content:center; }
-    .wrap { width:100%; max-width:760px; }
-    .card { background:#fff; border-radius:12px; padding:22px; box-shadow:0 6px 18px rgba(20,20,40,.06); }
-    h1 { margin:0 0 12px 0; font-size:20px; }
-    .owner { font-weight:700; margin-bottom:8px; }
-    .small { color:var(--muted); font-size:13px; margin-bottom:8px; }
-    textarea { width:100%; min-height:120px; padding:12px; font-size:15px; border-radius:8px; border:1px solid #e6e9ef; resize:vertical; box-sizing:border-box; }
-    .row { display:flex; gap:10px; align-items:center; margin-top:12px; }
-    button { background:var(--accent); color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600; }
-    button[disabled] { opacity:.6; cursor:not-allowed; }
-    .hidden { display:none !important; }
-    .char { color:var(--muted); font-size:13px; }
-    .error { color:#b00020; margin-top:10px; font-size:14px; }
-    .copybox { margin-top:14px; padding:12px; border:1px dashed #cfcfcf; border-radius:8px; background:#fbfbff; cursor:pointer; white-space:pre-wrap; word-break:break-word; }
+    :root{
+      --accent: #0066cc;
+      --glass-bg: rgba(255,255,255,0.28);
+      --glass-border: rgba(255,255,255,0.22);
+      --muted: #99a0ad;
+      --text: #0b1220;
+      --max-width: 720px;
+      --radius: 16px;
+    }
+
+    /* Reset & layout - full viewport, centered, no scroll */
+    html,body { height:100%; margin:0; }
+    body{
+      -webkit-font-smoothing:antialiased;
+      font-family: Inter, Inter var, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:100vh;
+      overflow:hidden; /* no scroll */
+      background:linear-gradient(45deg, #e8f0ff 0%, #f8f6ff 100%); /* fallback */
+      padding:20px;
+    }
+
+    /* Background gradient will be overwritten by config when loaded */
+    .bg {
+      position:fixed; inset:0; z-index:-2;
+      background:linear-gradient(45deg,var(--bg1, #e8f0ff), var(--bg2, #f8f6ff));
+      transition:background .6s ease;
+    }
+    .bg::after{
+      content:"";
+      position:fixed; inset:0; backdrop-filter: blur(8px) saturate(1.05);
+      z-index:-1;
+      mix-blend-mode:overlay;
+      opacity:.8;
+    }
+
+    /* Container */
+    .container {
+      width:100%;
+      max-width:var(--max-width);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:calc(100vh - 40px);
+      box-sizing:border-box;
+    }
+
+    /* Card - Liquid Glass */
+    .card {
+      width:100%;
+      border-radius:var(--radius);
+      padding:20px;
+      box-sizing:border-box;
+      background: linear-gradient(180deg, rgba(255,255,255,0.36), rgba(255,255,255,0.18));
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 8px 30px rgba(6,24,50,0.12);
+      backdrop-filter: blur(10px) saturate(120%);
+      -webkit-backdrop-filter: blur(10px) saturate(120%);
+      position:relative;
+      overflow:hidden;
+    }
+
+    /* Top-left icon */
+    #cfgIcon {
+      position:absolute;
+      top:14px;
+      left:14px;
+      width:44px;
+      height:44px;
+      border-radius:10px;
+      object-fit:cover;
+      box-shadow: 0 6px 18px rgba(6,24,50,0.12);
+      border:1px solid rgba(255,255,255,0.35);
+      background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.2));
+      display:none;
+    }
+
+    /* Header */
+    header { text-align:center; padding-top:6px; padding-bottom:6px; }
+    h1 { margin:0; font-size:20px; font-weight:700; letter-spacing:0.2px; }
+    .owner { margin-top:8px; color:var(--muted); font-weight:600; font-size:13px; }
+
+    /* Form layout */
+    .form {
+      margin-top:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    textarea {
+      width:100%;
+      min-height:120px;
+      max-height:40vh;
+      resize:vertical;
+      padding:14px;
+      font-size:15px;
+      border-radius:12px;
+      border:1px solid rgba(12,20,40,0.06);
+      background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.6));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+      outline:none;
+      color:var(--text);
+      box-sizing:border-box;
+    }
+    textarea:focus {
+      box-shadow:0 8px 20px rgba(2, 92, 214, 0.12);
+      border-color: var(--accent);
+    }
+
+    /* Row */
+    .row { display:flex; align-items:center; gap:12px; justify-content:space-between; flex-wrap:wrap; }
+
+    /* Turnstile placement */
+    .turnstile-wrap { display:flex; align-items:center; gap:8px; justify-content:flex-end; min-height:48px; }
+    /* ensure widget won't overlay other elements */
+    .turnstile-wrap > * { pointer-events:auto; }
+
+    /* Buttons */
+    .controls { display:flex; gap:10px; align-items:center; }
+    button {
+      appearance:none;
+      border:none;
+      padding:10px 14px;
+      border-radius:10px;
+      background:var(--accent);
+      color:white;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow: 0 8px 24px rgba(2, 92, 214, 0.14);
+      transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+    }
+    button:active { transform:translateY(1px); }
+    button.secondary {
+      background: rgba(255,255,255,0.12);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow:none;
+      backdrop-filter: blur(6px);
+    }
+    button.ghost {
+      background:transparent;
+      color:var(--accent);
+      border:1px solid rgba(2,92,214,0.12);
+    }
+    button[disabled]{ opacity:.5; cursor:not-allowed; transform:none; }
+
+    /* small text, errors */
+    .small { color:var(--muted); font-size:13px; }
+    .error { color:#d33; font-size:14px; display:none; }
+
+    /* sent area */
+    .sent {
+      margin-top:12px;
+      display:none;
+      gap:10px;
+      align-items:flex-start;
+      flex-direction:column;
+    }
+    .copybox {
+      width:100%;
+      padding:12px;
+      border-radius:10px;
+      background: rgba(12,20,40,0.04);
+      border:1px dashed rgba(12,20,40,0.06);
+      font-size:14px;
+      cursor:pointer;
+      word-break:break-word;
+    }
+
+    /* Overlay shown after send */
+    .overlay {
+      position:absolute;
+      inset:0;
+      background: rgba(0,0,0,0.52);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:40;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .22s ease;
+    }
+    .overlay.show { opacity:1; pointer-events:auto; }
+
+    .modal {
+      width:calc(100% - 48px);
+      max-width:520px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
+      border-radius:14px;
+      padding:18px;
+      box-shadow: 0 24px 60px rgba(2,9,23,0.6);
+      color: #fff;
+      border:1px solid rgba(255,255,255,0.06);
+      text-align:center;
+      transform: translateY(8px);
+      animation: pop .28s cubic-bezier(.2,.9,.2,1);
+    }
+    @keyframes pop {
+      from { transform: translateY(18px) scale(.98); opacity:0; } to { transform: translateY(0) scale(1); opacity:1; }
+    }
+    .modal .title { font-weight:800; font-size:18px; margin-bottom:6px; }
+    .modal .desc { color: rgba(255,255,255,0.85); font-size:14px; margin-bottom:12px; }
+    .modal .links { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:12px; }
+    .modal a {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px; background:rgba(255,255,255,0.06); color:white; border-radius:10px; text-decoration:none;
+      font-weight:700; font-size:13px;
+    }
+
+    /* Footer small */
+    footer { margin-top:10px; font-size:12px; color:var(--muted); text-align:center; }
+
     /* Toast */
-    .toast { position:fixed; right:20px; bottom:20px; background:#111; color:#fff; padding:12px 16px; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.2); opacity:0; transform:translateY(12px); transition:all .26s ease; pointer-events:none; z-index:9999; }
-    .toast.show { opacity:1; transform:translateY(0); pointer-events:auto; }
-    .note { font-size:13px; color:var(--muted); margin-top:10px; }
+    .toast {
+      position:fixed;
+      left:50%;
+      transform:translateX(-50%) translateY(16px);
+      bottom:18px;
+      background:#0b1220;
+      color:white;
+      padding:10px 14px;
+      border-radius:10px;
+      box-shadow:0 12px 40px rgba(4,10,40,0.4);
+      opacity:0; transition:opacity .18s, transform .18s;
+      z-index:60;
+      pointer-events:none;
+    }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
+
+    /* Mobile tweaks */
+    @media (max-width:420px){
+      .card { padding:14px; border-radius:12px; }
+      #cfgIcon { width:40px; height:40px; top:12px; left:12px; }
+      textarea { min-height:110px; }
+    }
+
   </style>
 
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
-  <div class="wrap">
+  <div class="bg" id="bg"></div>
+
+  <div class="container">
     <div class="card" id="card">
-      <h1 id="title">Anonyme Nachrichten</h1>
-      <div id="ownerLine" class="owner">Lade...</div>
-      <div id="cfgError" class="error hidden"></div>
+      <img id="cfgIcon" alt="Icon" />
+      <header>
+        <h1 id="title">Anonyme Nachrichten</h1>
+        <div id="ownerLine" class="owner">Lade…</div>
+      </header>
 
-      <div id="formArea" class="hidden">
-        <div class="small">Deine anonyme Nachricht an <span id="ownerName"></span>:</div>
-        <textarea id="message" placeholder="Schreibe deine Nachricht (mind. 3, max. 200 Zeichen)"></textarea>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-          <div class="char" id="charCount">0 / 200</div>
-          <div id="turnstileWrapper"></div>
+      <!-- main form area -->
+      <div id="formWrap" class="form" aria-live="polite">
+        <div id="formInner">
+          <div class="small" id="toLabel">Deine anonyme Nachricht an <strong id="ownerName">…</strong>:</div>
+          <textarea id="message" placeholder="Schreibe deine Nachricht" autocomplete="off" inputmode="text" spellcheck="true"></textarea>
+
+          <div class="row">
+            <div class="turnstile-wrap" id="turnstileWrapper" aria-hidden="false"></div>
+            <div class="controls">
+              <button id="submitBtn" disabled>Absenden</button>
+            </div>
+          </div>
+
+          <div id="resultArea" class="sent" aria-hidden="true">
+            <div class="small">Gesendet — Klick zum Kopieren:</div>
+            <div id="sentBox" class="copybox" title="Klicken, um kopieren">—</div>
+          </div>
+
+          <div id="error" class="error" role="alert"></div>
         </div>
+      </div>
 
-        <div class="row">
-          <button id="submitBtn" class="hidden">Absenden</button>
-          <div id="sendingNote" class="small hidden">Sende…</div>
+      <footer id="footer" class="small"> </footer>
+
+      <!-- Overlay shown after send containing links + buttons -->
+      <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal" id="modal">
+          <div class="title">Nachricht gesendet ✅</div>
+          <div class="desc">Deine anonyme Nachricht wurde übermittelt.</div>
+
+          <div class="links" id="linksArea">
+            <!-- links injected here -->
+          </div>
+
+          <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <button id="againBtn">Noch eine Nachricht</button>
+            <button id="myMsgsBtn" class="secondary">Eigene Nachrichten erhalten</button>
+          </div>
         </div>
-
-        <div id="resultArea" class="hidden">
-          <div class="small">Gesendet — Klick zum Kopieren:</div>
-          <div id="sentBox" class="copybox" title="Klicken, um zu kopieren"></div>
-        </div>
-
-        <div id="error" class="error hidden"></div>
-        <div class="note">Hinweis: Neue Zeilen werden vor dem Versand in Leerzeichen umgewandelt.</div>
       </div>
 
     </div>
@@ -63,248 +306,364 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script>
-  (function(){
-    // ------------------ KONFIGURATION ------------------
-    const WORKER_URL = "https://weathered-tree-661a.anonymenachrichtholder.workers.dev";
-    const TURNSTILE_SITEKEY = "0x4AAAAAACJjDP0IZOtMJtiL";
-    // ---------------------------------------------------
+<script>
+(function(){
+  // ---------------- CONFIG / CONSTANTS ----------------
+  const WORKER_URL = "https://weathered-tree-661a.anonymenachrichtholder.workers.dev";
+  const TURNSTILE_SITEKEY = "0x4AAAAAACJjDP0IZOtMJtiL";
+  // ---------------------------------------------------
 
-    // Elemente
-    const ownerLine = document.getElementById("ownerLine");
-    const ownerNameEl = document.getElementById("ownerName");
-    const formArea = document.getElementById("formArea");
-    const cfgError = document.getElementById("cfgError");
-    const messageEl = document.getElementById("message");
-    const charCount = document.getElementById("charCount");
-    const submitBtn = document.getElementById("submitBtn");
-    const sendingNote = document.getElementById("sendingNote");
-    const resultArea = document.getElementById("resultArea");
-    const sentBox = document.getElementById("sentBox");
-    const errorEl = document.getElementById("error");
-    const title = document.getElementById("title");
-    const toast = document.getElementById("toast");
-    const turnstileWrapper = document.getElementById("turnstileWrapper");
+  // Elements
+  const ownerLine = document.getElementById('ownerLine');
+  const ownerNameEl = document.getElementById('ownerName');
+  const titleEl = document.getElementById('title');
+  const messageEl = document.getElementById('message');
+  const submitBtn = document.getElementById('submitBtn');
+  const turnstileWrapper = document.getElementById('turnstileWrapper');
+  const sentBox = document.getElementById('sentBox');
+  const resultArea = document.getElementById('resultArea');
+  const errorEl = document.getElementById('error');
+  const toast = document.getElementById('toast');
+  const overlay = document.getElementById('overlay');
+  const modal = document.getElementById('modal');
+  const linksArea = document.getElementById('linksArea');
+  const againBtn = document.getElementById('againBtn');
+  const myMsgsBtn = document.getElementById('myMsgsBtn');
+  const cfgIcon = document.getElementById('cfgIcon');
+  const bg = document.getElementById('bg');
+  const footer = document.getElementById('footer');
 
-    let currentBezeichnung = null;
-    let lastToken = null;
-    let widgetId = null;
+  let currentBezeichnung = null;
+  let lastToken = null;
+  let widgetId = null;
+  let cfg = null;
 
-    // === Pfadermittlung: Query param 'path' hat Vorrang, sonst location.pathname === '/'
-    function resolveRequestedPath() {
-      const qs = new URLSearchParams(location.search);
-      let p = qs.get('path');
-      if (p) {
-        try { p = decodeURIComponent(p); } catch(e) { /* ignore */ }
-      } else {
-        p = location.pathname;
-      }
-      p = (p || "").replace(/^\/+|\/+$/g, "");
-      if (!p) p = "index";
-      return p;
-    }
+  // --- Helpers ---
+  function qs(name) {
+    const u = new URL(location.href);
+    return u.searchParams.get(name);
+  }
 
-    const requested = resolveRequestedPath();
-    // build candidate filenames (unique)
-    function buildVariants(name){
-      const variants = [];
-      if (name) variants.push(name);
-      const lower = name.toLowerCase();
-      if (!variants.includes(lower)) variants.push(lower);
-      const cap = name.charAt(0).toUpperCase() + name.slice(1);
-      if (!variants.includes(cap)) variants.push(cap);
-      // ensure index at end as fallback
-      if (!variants.includes("index")) variants.push("index");
-      return variants;
-    }
+  // resolve requested path: query param 'path' first else pathname
+  function resolveRequestedPath() {
+    const qsPath = qs('path');
+    let p = qsPath || location.pathname;
+    p = (p || "").replace(/^\/+|\/+$/g, "");
+    if (!p) p = "index";
+    return p;
+  }
 
-    // Versuche mehrere Dateinamen in logischer Reihenfolge
-    async function fetchConfigWithVariants(name) {
-      const variants = buildVariants(name);
-      for (const v of variants) {
-        const url = "/parent/" + encodeURIComponent(v) + ".json";
-        try {
-          const r = await fetch(url, {cache: "no-store"});
-          if (r.ok) {
-            const j = await r.json();
-            // return both json and the variant used
-            return { json: j, variant: v, url };
-          }
-        } catch (e) {
-          // ignore network parse error for this variant and try next
-        }
-      }
-      // nothing found
-      throw new Error("notfound");
-    }
+  const requested = resolveRequestedPath();
 
-    // Lade Konfiguration (mit Variants-Strategie)
-    async function loadConfig() {
-      ownerLine.textContent = "Lade…";
+  function buildVariants(name){
+    const variants = [];
+    if (!name) return ['index'];
+    variants.push(name);
+    const lower = name.toLowerCase();
+    if (!variants.includes(lower)) variants.push(lower);
+    const cap = name.charAt(0).toUpperCase() + name.slice(1);
+    if (!variants.includes(cap)) variants.push(cap);
+    if (!variants.includes('index')) variants.push('index');
+    return variants;
+  }
+
+  async function fetchConfigWithVariants(name){
+    const variants = buildVariants(name);
+    for (const v of variants) {
+      const url = '/parent/' + encodeURIComponent(v) + '.json';
       try {
-        const res = await fetchConfigWithVariants(requested);
-        const cfg = res.json;
-        if (!cfg || !cfg.owner || !cfg.bezeichnung) {
-          ownerLine.textContent = "Ungültige Konfiguration";
-          cfgError.textContent = "Die Konfigurationsdatei muss 'owner' und 'bezeichnung' enthalten.";
-          cfgError.classList.remove("hidden");
-          return;
+        const r = await fetch(url, { cache: 'no-store' });
+        if (r.ok) {
+          const j = await r.json();
+          return { json: j, variant: v, url };
         }
-        currentBezeichnung = cfg.bezeichnung;
-        ownerLine.textContent = `Anonyme Nachrichten an ${cfg.owner}`;
-        ownerNameEl.textContent = cfg.owner;
-        title.textContent = `Anonyme Nachrichten an ${cfg.owner}`;
-        formArea.classList.remove("hidden");
-        // Render Turnstile nachdem die Seite gültig ist
-        renderTurnstile();
-      } catch (e) {
-        ownerLine.textContent = "Diese Seite ist nicht konfiguriert.";
-        cfgError.textContent = `Konfigurationsdatei nicht gefunden für Pfad: ${requested} (versuchte Varianten: ${buildVariants(requested).join(", ")})`;
-        cfgError.classList.remove("hidden");
+      } catch(e){
+        // ignore and try next
       }
     }
+    // not found
+    return null;
+  }
 
-    loadConfig();
+  // If requested is 'index' -> show start page text only
+  function renderStartPage() {
+    document.body.style.overflow = 'hidden';
+    // minimal UI: replace card content with single text
+    const card = document.getElementById('card');
+    card.innerHTML = '<div style="padding:28px;text-align:center;"><h2 style="margin:0 0 8px 0">Startseite</h2><div class="small">hier gibt es noch nichts auf der ganzen Seite</div></div>';
+  }
 
-    // Char counter & validation
-    messageEl.addEventListener("input", () => {
-      const val = messageEl.value;
-      charCount.textContent = `${val.length} / 200`;
-      validateAndToggleSubmit();
-    });
-
-    function validateAndToggleSubmit(){
-      const txt = messageEl.value.trim();
-      const okLen = txt.length >= 3 && txt.length <= 200;
-      if (lastToken && okLen) submitBtn.classList.remove("hidden");
-      else submitBtn.classList.add("hidden");
+  // Load config unless we're on start page
+  async function loadConfig(){
+    if (requested === 'index') {
+      renderStartPage();
+      return;
     }
 
-    // Turnstile: Render warten
-    function renderTurnstile(){
-      const wait = () => {
-        if (window.turnstile && typeof window.turnstile.render === "function") {
-          widgetId = window.turnstile.render(turnstileWrapper, {
-            sitekey: TURNSTILE_SITEKEY,
-            callback: onTurnstileSuccess,
-            "error-callback": onTurnstileError,
-            "expired-callback": onTurnstileExpired
-          });
-        } else {
-          setTimeout(wait, 200);
-        }
-      };
-      wait();
+    ownerLine.textContent = 'Lade…';
+    const res = await fetchConfigWithVariants(requested);
+    if (!res) {
+      // wenn die Konfig nicht gefunden wurde -> Weiterleitung zur Startseite
+      // avoid loop: if we're already at '/', do startpage render
+      if (location.pathname === '/' || location.pathname === '/index.html' || location.pathname === '') {
+        renderStartPage();
+        return;
+      }
+      location.href = '/';
+      return;
     }
 
-    function onTurnstileSuccess(token){
-      lastToken = token;
-      validateAndToggleSubmit();
+    cfg = res.json;
+
+    // Minimal validation
+    if (!cfg.owner || !cfg.bezeichnung) {
+      ownerLine.textContent = 'Ungültige Konfiguration';
+      errorEl.style.display = 'block';
+      errorEl.textContent = "Konfiguration benötigt mindestens 'owner' und 'bezeichnung'.";
+      return;
     }
-    function onTurnstileError(){ showToast("Captcha-Fehler, bitte erneut versuchen."); }
-    function onTurnstileExpired(){ lastToken = null; validateAndToggleSubmit(); }
 
-    // Submit
-    submitBtn.addEventListener("click", async () => {
-      clearError();
-      submitBtn.disabled = true;
-      sendingNote.classList.remove("hidden");
+    currentBezeichnung = cfg.bezeichnung;
+    ownerLine.textContent = `Anonyme Nachrichten an ${cfg.owner}`;
+    ownerNameEl.textContent = cfg.owner;
+    titleEl.textContent = cfg.owner ? `Anonyme Nachrichten an ${cfg.owner}` : 'Anonyme Nachrichten';
 
-      const raw = messageEl.value || "";
-      const cleanedForDisplay = raw.replace(/\r?\n/g, " ").trim();
+    // Icon
+    if (cfg.icon_url) {
+      cfgIcon.src = cfg.icon_url;
+      cfgIcon.style.display = 'block';
+    }
 
-      const payload = {
-        bezeichnung: currentBezeichnung,
-        token: lastToken,
-        message: raw
-      };
+    // Background colors: two colors expected bg_color1, bg_color2
+    if (cfg.bg_color1 && cfg.bg_color2) {
+      bg.style.background = `linear-gradient(45deg, ${cfg.bg_color1}, ${cfg.bg_color2})`;
+      // tweak CSS variables
+      document.documentElement.style.setProperty('--bg1', cfg.bg_color1);
+      document.documentElement.style.setProperty('--bg2', cfg.bg_color2);
+    }
 
-      try {
-        const resp = await fetch(WORKER_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+    // Footer hints / optional author
+    footer.textContent = cfg.footer_text || '';
+
+    // Render turnstile now that config OK
+    renderTurnstile();
+
+    // Prepare links area (but hidden until message sent)
+    prepareLinksFromConfig(cfg);
+  }
+
+  function prepareLinksFromConfig(cfg) {
+    linksArea.innerHTML = '';
+    const links = [];
+    if (cfg.discord) {
+      links.push({ href: cfg.discord, label: 'Discord', emoji: '🗨️' });
+    }
+    if (cfg.youtube) {
+      links.push({ href: cfg.youtube, label: 'YouTube', emoji: '▶️' });
+    }
+    if (cfg.whatsapp) {
+      links.push({ href: cfg.whatsapp, label: 'WhatsApp', emoji: '📱' });
+    }
+    // Inject now (but kept hidden until overlay open)
+    for (const l of links) {
+      const a = document.createElement('a');
+      a.href = l.href;
+      a.rel = 'noopener noreferrer';
+      a.target = '_blank';
+      a.textContent = `${l.emoji} ${l.label}`;
+      linksArea.appendChild(a);
+    }
+  }
+
+  // turnstile render
+  function renderTurnstile(){
+    const wait = () => {
+      if (window.turnstile && typeof window.turnstile.render === 'function') {
+        widgetId = window.turnstile.render(turnstileWrapper, {
+          sitekey: TURNSTILE_SITEKEY,
+          callback: onTurnstileSuccess,
+          'error-callback': onTurnstileError,
+          'expired-callback': onTurnstileExpired,
+          theme: 'light'
         });
-
-        let data = null;
-        try { data = await resp.json(); } catch(e){ /* invalid json */ }
-
-        if (!resp.ok) {
-          const errMsg = (data && data.error) ? data.error : `Serverantwort ${resp.status}`;
-          showToast(errMsg);
-          return;
-        }
-
-        if (!data) {
-          showToast("Ungültige Serverantwort");
-          return;
-        }
-
-        if (data.status !== "SUCCESS") {
-          const err = data.error || "Unbekannter Fehler";
-          showToast(err);
-          return;
-        }
-
-        // Erfolg
-        sentBox.textContent = cleanedForDisplay || "(leere Nachricht)";
-        resultArea.classList.remove("hidden");
-        messageEl.value = "";
-        charCount.textContent = "0 / 200";
-        submitBtn.classList.add("hidden");
-        lastToken = null;
-        try {
-          if (window.turnstile && typeof window.turnstile.reset === "function") {
-            window.turnstile.reset(widgetId);
-          }
-        } catch(e){}
-      } catch (err) {
-        console.error(err);
-        showToast("Netzwerkfehler: " + (err.message || err));
-      } finally {
-        submitBtn.disabled = false;
-        sendingNote.classList.add("hidden");
+        // ensure the widget container does not cover the textarea and allows typing
+        turnstileWrapper.style.pointerEvents = 'auto';
+      } else {
+        setTimeout(wait, 200);
       }
-    });
+    };
+    wait();
+  }
 
-    // copybox click
-    sentBox.addEventListener("click", () => {
-      const txt = sentBox.textContent || "";
-      if (!txt) return;
-      navigator.clipboard?.writeText(txt).then(() => {
-        const prev = sentBox.textContent;
-        sentBox.textContent = "Kopiert ✅ — " + prev;
-        setTimeout(() => { sentBox.textContent = prev; }, 1400);
-      }).catch(() => {
-        try {
-          const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
-          const prev = sentBox.textContent;
-          sentBox.textContent = "Kopiert ✅ — " + prev;
-          setTimeout(() => { sentBox.textContent = prev; }, 1400);
-        } catch(e) { showToast("Kopieren fehlgeschlagen"); }
-      });
-    });
+  function onTurnstileSuccess(token){
+    lastToken = token;
+    validateAndToggleSubmit();
+  }
+  function onTurnstileError(){ showToast('Captcha-Fehler, bitte erneut versuchen.'); lastToken = null; validateAndToggleSubmit(); }
+  function onTurnstileExpired(){ lastToken = null; validateAndToggleSubmit(); }
 
-    // Toast
-    let toastTimer = null;
-    function showToast(msg, ms = 4500) {
-      toast.textContent = msg;
-      toast.classList.add("show");
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => { toast.classList.remove("show"); }, ms);
+  // Validation: keep silent UI (no "3-200" hints), but enforce same server-side constraints
+  function validateAndToggleSubmit(){
+    const txt = (messageEl.value || '').trim();
+    const okLen = txt.length >= 3 && txt.length <= 200;
+    if (lastToken && okLen) {
+      submitBtn.disabled = false;
+    } else {
+      submitBtn.disabled = true;
     }
+  }
 
-    function clearError(){ errorEl.classList.add("hidden"); errorEl.textContent = ""; }
-    function showError(msg){ errorEl.textContent = msg; errorEl.classList.remove("hidden"); }
+  messageEl.addEventListener('input', () => {
+    // allow typing during captcha verification: do NOT disable textarea
+    validateAndToggleSubmit();
+  });
 
-    // Enter mit Ctrl/Cmd senden
-    messageEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-        if (!submitBtn.classList.contains("hidden")) submitBtn.click();
+  // Submit handler
+  submitBtn.addEventListener('click', async () => {
+    clearError();
+    submitBtn.disabled = true;
+    const raw = messageEl.value || "";
+    const cleanedForDisplay = raw.replace(/\r?\n/g, ' ').trim();
+
+    const payload = {
+      bezeichnung: currentBezeichnung,
+      token: lastToken,
+      message: raw
+    };
+
+    try {
+      const resp = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      let data = null;
+      try { data = await resp.json(); } catch(e){}
+
+      if (!resp.ok) {
+        const errMsg = (data && data.error) ? data.error : `Serverantwort ${resp.status}`;
+        showToast(errMsg);
+        submitBtn.disabled = false;
+        return;
       }
-    });
 
-  })();
-  </script>
+      if (!data) {
+        showToast('Ungültige Serverantwort');
+        submitBtn.disabled = false;
+        return;
+      }
+
+      if (data.status !== 'SUCCESS') {
+        const err = data.error || 'Unbekannter Fehler';
+        showToast(err);
+        submitBtn.disabled = false;
+        return;
+      }
+
+      // success
+      sentBox.textContent = cleanedForDisplay || '(leere Nachricht)';
+      resultArea.style.display = 'flex';
+      resultArea.setAttribute('aria-hidden', 'false');
+      messageEl.value = '';
+      lastToken = null;
+      try { if (window.turnstile && typeof window.turnstile.reset === 'function') window.turnstile.reset(widgetId); } catch(e){}
+      // show overlay with links + buttons
+      openOverlay();
+
+    } catch (err) {
+      console.error(err);
+      showToast('Netzwerkfehler: ' + (err.message || err));
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  // copy sent text
+  sentBox.addEventListener('click', () => {
+    const txt = sentBox.textContent || '';
+    if (!txt) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(() => {
+        const prev = sentBox.textContent;
+        sentBox.textContent = 'Kopiert ✅ — ' + prev;
+        setTimeout(()=> sentBox.textContent = prev, 1400);
+      }).catch(() => fallbackCopy(txt));
+    } else fallbackCopy(txt);
+  });
+
+  function fallbackCopy(txt) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      const prev = sentBox.textContent;
+      sentBox.textContent = 'Kopiert ✅ — ' + prev;
+      setTimeout(()=> sentBox.textContent = prev, 1400);
+    } catch(e) {
+      showToast('Kopieren fehlgeschlagen');
+    }
+  }
+
+  // Overlay control
+  function openOverlay(){
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden','false');
+    // focus first button for accessibility
+    againBtn.focus();
+  }
+
+  function closeOverlay(){
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden','true');
+    // clear sent display
+    resultArea.style.display = 'none';
+    resultArea.setAttribute('aria-hidden','true');
+    sentBox.textContent = '';
+  }
+
+  againBtn.addEventListener('click', () => {
+    closeOverlay();
+    // re-render turnstile for fresh token
+    try { if (window.turnstile && typeof window.turnstile.reset === 'function') window.turnstile.reset(widgetId); } catch(e){}
+    messageEl.focus();
+  });
+
+  myMsgsBtn.addEventListener('click', () => {
+    // go to start page (explicit requirement)
+    location.href = '/';
+  });
+
+  // toast
+  let toastTimer = null;
+  function showToast(msg, ms = 4000) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toast.classList.remove('show'), ms);
+  }
+
+  function clearError(){
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+  }
+  function showError(msg){
+    errorEl.textContent = msg;
+    errorEl.style.display = 'block';
+  }
+
+  // Ctrl/Cmd+Enter to send
+  messageEl.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      if (!submitBtn.disabled) submitBtn.click();
+    }
+  });
+
+  // Prepare and load config
+  loadConfig();
+
+  // If user lands directly on '/' or 'index' we show startpage (handled in loadConfig)
+})();
+</script>
 </body>
 </html>
