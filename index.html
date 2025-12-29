@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Anonyme Nachrichten</title>
   <style>
     :root { --accent:#0066cc; --muted:#666; --bg:#f7f8fb; }
@@ -21,12 +21,12 @@
     .error { color:#b00020; margin-top:10px; font-size:14px; }
     .copybox { margin-top:14px; padding:12px; border:1px dashed #cfcfcf; border-radius:8px; background:#fbfbff; cursor:pointer; white-space:pre-wrap; word-break:break-word; }
     /* Toast */
-    .toast { position:fixed; right:20px; bottom:20px; background:#111; color:#fff; padding:12px 16px; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.2); opacity:0; transform:translateY(12px); transition:all .26s ease; pointer-events:none; }
+    .toast { position:fixed; right:20px; bottom:20px; background:#111; color:#fff; padding:12px 16px; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.2); opacity:0; transform:translateY(12px); transition:all .26s ease; pointer-events:none; z-index:9999; }
     .toast.show { opacity:1; transform:translateY(0); pointer-events:auto; }
     .note { font-size:13px; color:var(--muted); margin-top:10px; }
   </style>
 
-  <!-- Cloudflare Turnstile script (async) -->
+  <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
@@ -61,19 +61,16 @@
     </div>
   </div>
 
-  <!-- Toast für Fehler -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
   (function(){
-    // --------- KONFIGURATION (bereitgestellt) ----------
+    // ------------------ KONFIGURATION ------------------
     const WORKER_URL = "https://weathered-tree-661a.anonymenachrichtholder.workers.dev";
     const TURNSTILE_SITEKEY = "0x4AAAAAACJjDP0IZOtMJtiL";
     // ---------------------------------------------------
 
-    // Elements
-    const path = location.pathname.replace(/^\/+|\/+$/g, "") || "index";
-    const configUrl = "/parent/" + encodeURIComponent(path) + ".json";
+    // Elemente
     const ownerLine = document.getElementById("ownerLine");
     const ownerNameEl = document.getElementById("ownerName");
     const formArea = document.getElementById("formArea");
@@ -93,20 +90,63 @@
     let lastToken = null;
     let widgetId = null;
 
-    // Load configuration file parent/<path>.json
-    async function loadConfig(){
-      try {
-        const r = await fetch(configUrl, {cache:"no-store"});
-        if (!r.ok) {
-          ownerLine.textContent = "Diese Seite ist nicht konfiguriert.";
-          cfgError.textContent = `Konfigurationsdatei nicht gefunden: ${configUrl}`;
-          cfgError.classList.remove("hidden");
-          return;
+    // === Pfadermittlung: Query param 'path' hat Vorrang, sonst location.pathname === '/'
+    function resolveRequestedPath() {
+      const qs = new URLSearchParams(location.search);
+      let p = qs.get('path');
+      if (p) {
+        try { p = decodeURIComponent(p); } catch(e) { /* ignore */ }
+      } else {
+        p = location.pathname;
+      }
+      p = (p || "").replace(/^\/+|\/+$/g, "");
+      if (!p) p = "index";
+      return p;
+    }
+
+    const requested = resolveRequestedPath();
+    // build candidate filenames (unique)
+    function buildVariants(name){
+      const variants = [];
+      if (name) variants.push(name);
+      const lower = name.toLowerCase();
+      if (!variants.includes(lower)) variants.push(lower);
+      const cap = name.charAt(0).toUpperCase() + name.slice(1);
+      if (!variants.includes(cap)) variants.push(cap);
+      // ensure index at end as fallback
+      if (!variants.includes("index")) variants.push("index");
+      return variants;
+    }
+
+    // Versuche mehrere Dateinamen in logischer Reihenfolge
+    async function fetchConfigWithVariants(name) {
+      const variants = buildVariants(name);
+      for (const v of variants) {
+        const url = "/parent/" + encodeURIComponent(v) + ".json";
+        try {
+          const r = await fetch(url, {cache: "no-store"});
+          if (r.ok) {
+            const j = await r.json();
+            // return both json and the variant used
+            return { json: j, variant: v, url };
+          }
+        } catch (e) {
+          // ignore network parse error for this variant and try next
         }
-        const cfg = await r.json();
-        if (!cfg.owner || !cfg.bezeichnung) {
+      }
+      // nothing found
+      throw new Error("notfound");
+    }
+
+    // Lade Konfiguration (mit Variants-Strategie)
+    async function loadConfig() {
+      ownerLine.textContent = "Lade…";
+      try {
+        const res = await fetchConfigWithVariants(requested);
+        const cfg = res.json;
+        if (!cfg || !cfg.owner || !cfg.bezeichnung) {
           ownerLine.textContent = "Ungültige Konfiguration";
-          cfgError.textContent = "Die Konfiguration benötigt die Felder 'owner' und 'bezeichnung'.";
+          cfgError.textContent = "Die Konfigurationsdatei muss 'owner' und 'bezeichnung' enthalten.";
           cfgError.classList.remove("hidden");
           return;
         }
@@ -115,25 +155,24 @@
         ownerNameEl.textContent = cfg.owner;
         title.textContent = `Anonyme Nachrichten an ${cfg.owner}`;
         formArea.classList.remove("hidden");
-        // render turnstile after we know page is valid
+        // Render Turnstile nachdem die Seite gültig ist
         renderTurnstile();
       } catch (e) {
-        ownerLine.textContent = "Fehler beim Laden der Konfiguration";
-        cfgError.textContent = e.toString();
+        ownerLine.textContent = "Diese Seite ist nicht konfiguriert.";
+        cfgError.textContent = `Konfigurationsdatei nicht gefunden für Pfad: ${requested} (versuchte Varianten: ${buildVariants(requested).join(", ")})`;
         cfgError.classList.remove("hidden");
       }
     }
 
     loadConfig();
 
-    // Char counter and validation
+    // Char counter & validation
     messageEl.addEventListener("input", () => {
       const val = messageEl.value;
       charCount.textContent = `${val.length} / 200`;
       validateAndToggleSubmit();
     });
 
-    // Validate and show/hide submit
     function validateAndToggleSubmit(){
       const txt = messageEl.value.trim();
       const okLen = txt.length >= 3 && txt.length <= 200;
@@ -141,7 +180,7 @@
       else submitBtn.classList.add("hidden");
     }
 
-    // Turnstile render (wait until script loaded)
+    // Turnstile: Render warten
     function renderTurnstile(){
       const wait = () => {
         if (window.turnstile && typeof window.turnstile.render === "function") {
@@ -162,18 +201,17 @@
       lastToken = token;
       validateAndToggleSubmit();
     }
-    function onTurnstileError(){ showToast("Captcha-Fehler, versuche es bitte erneut."); }
+    function onTurnstileError(){ showToast("Captcha-Fehler, bitte erneut versuchen."); }
     function onTurnstileExpired(){ lastToken = null; validateAndToggleSubmit(); }
 
-    // Submit handler
+    // Submit
     submitBtn.addEventListener("click", async () => {
       clearError();
       submitBtn.disabled = true;
       sendingNote.classList.remove("hidden");
 
-      // Prepare message: replace new lines with spaces for display
       const raw = messageEl.value || "";
-      const cleanForDisplay = raw.replace(/\r?\n/g, " ").trim();
+      const cleanedForDisplay = raw.replace(/\r?\n/g, " ").trim();
 
       const payload = {
         bezeichnung: currentBezeichnung,
@@ -188,8 +226,8 @@
           body: JSON.stringify(payload)
         });
 
-        let data;
-        try { data = await resp.json(); } catch(e){ data = null; }
+        let data = null;
+        try { data = await resp.json(); } catch(e){ /* invalid json */ }
 
         if (!resp.ok) {
           const errMsg = (data && data.error) ? data.error : `Serverantwort ${resp.status}`;
@@ -197,31 +235,29 @@
           return;
         }
 
-        // expect JSON { status: "SUCCESS" } or { status: "ERROR", error: "..." }
         if (!data) {
           showToast("Ungültige Serverantwort");
           return;
         }
+
         if (data.status !== "SUCCESS") {
           const err = data.error || "Unbekannter Fehler";
           showToast(err);
           return;
         }
 
-        // Success: show copyable box with cleaned message (no newlines)
-        sentBox.textContent = cleanForDisplay || "(leere Nachricht)";
+        // Erfolg
+        sentBox.textContent = cleanedForDisplay || "(leere Nachricht)";
         resultArea.classList.remove("hidden");
-        // clear inputs
         messageEl.value = "";
         charCount.textContent = "0 / 200";
         submitBtn.classList.add("hidden");
         lastToken = null;
-        // reset widget if possible
         try {
           if (window.turnstile && typeof window.turnstile.reset === "function") {
             window.turnstile.reset(widgetId);
           }
-        } catch(e){ /* ignore */ }
+        } catch(e){}
       } catch (err) {
         console.error(err);
         showToast("Netzwerkfehler: " + (err.message || err));
@@ -231,7 +267,7 @@
       }
     });
 
-    // copy on click
+    // copybox click
     sentBox.addEventListener("click", () => {
       const txt = sentBox.textContent || "";
       if (!txt) return;
@@ -240,47 +276,30 @@
         sentBox.textContent = "Kopiert ✅ — " + prev;
         setTimeout(() => { sentBox.textContent = prev; }, 1400);
       }).catch(() => {
-        // fallback
         try {
-          const ta = document.createElement("textarea");
-          ta.value = txt;
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          document.body.removeChild(ta);
+          const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
           const prev = sentBox.textContent;
           sentBox.textContent = "Kopiert ✅ — " + prev;
           setTimeout(() => { sentBox.textContent = prev; }, 1400);
-        } catch (e) {
-          showToast("Kopieren fehlgeschlagen");
-        }
+        } catch(e) { showToast("Kopieren fehlgeschlagen"); }
       });
     });
 
-    // Toast helper
+    // Toast
     let toastTimer = null;
     function showToast(msg, ms = 4500) {
       toast.textContent = msg;
       toast.classList.add("show");
       if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => {
-        toast.classList.remove("show");
-      }, ms);
+      toastTimer = setTimeout(() => { toast.classList.remove("show"); }, ms);
     }
 
-    function clearError(){
-      errorEl.classList.add("hidden");
-      errorEl.textContent = "";
-    }
-    function showError(msg){
-      errorEl.textContent = msg;
-      errorEl.classList.remove("hidden");
-    }
+    function clearError(){ errorEl.classList.add("hidden"); errorEl.textContent = ""; }
+    function showError(msg){ errorEl.textContent = msg; errorEl.classList.remove("hidden"); }
 
-    // small accessibility: focus textarea
+    // Enter mit Ctrl/Cmd senden
     messageEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-        // Ctrl+Enter send if submit visible
         if (!submitBtn.classList.contains("hidden")) submitBtn.click();
       }
     });
