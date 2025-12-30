@@ -21,6 +21,12 @@
       --cta-size:72px;            /* circular buttons */
       --tool-size:46px;           /* bottom-right link buttons */
       --max-width:760px;
+      /* Textbox – Light Mode (Default) */
+  --textarea-bg: #ffffff;
+  --textarea-text: #000000;
+
+  /* optional */
+  --textarea-border: rgba(12,20,40,0.12);
     }
 
     /* full page */
@@ -146,17 +152,19 @@
 
     textarea {
   width: 100%;
-  box-sizing: border-box;          /* 🔑 verhindert Überlaufen */
+  box-sizing: border-box;
   min-height: 140px;
   max-height: 45vh;
-  font-size: 16px;                 /* verhindert Mobile-Zoom */
+  font-size: 16px;
   padding: 16px;
   border-radius: 12px;
-  border: 1px solid rgba(12,20,40,0.06);
+  border: 1px solid var(--textarea-border);
   resize: vertical;
   outline: none;
-  color: var(--text);
-  background: rgba(255,255,255,0.85);
+
+  color: var(--textarea-text);      /* 🔑 Textfarbe */
+  background: var(--textarea-bg);   /* 🔑 Hintergrund */
+
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
   transition: box-shadow 160ms ease, border-color 160ms ease;
 }
