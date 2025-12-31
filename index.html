@@ -667,7 +667,6 @@ submitBtn.addEventListener('pointercancel',() => submitBtn.classList.remove('is-
   submitBtn.addEventListener('click', async (e) => {
     if(submitBtn.classList.contains('disabled')) return;
     submitBtn.classList.add('disabled');
-    sendNote.textContent = 'Sende…';
     try{
       const raw = messageEl.value || '';
       const cleanedForDisplay = raw.replace(/\r?\n/g, ' ').trim();
