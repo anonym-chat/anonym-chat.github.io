@@ -209,16 +209,13 @@
   -webkit-backdrop-filter: blur(6px) saturate(1.2);
 
   cursor:pointer;
-  transition:
-    transform 220ms cubic-bezier(.16,.8,.24,1),
-    box-shadow 220ms cubic-bezier(.16,.8,.24,1);
+  transition: transform 420ms cubic-bezier(.16,.8,.24,1);
 }
-    .cta:active {
-  transform: scale(0.92);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.35),
-    0 8px 22px rgba(39,174,96,0.25);
+.cta.is-pressed {
+  transition: transform 80ms cubic-bezier(.4,0,.6,1);
+  transform: scale(0.86);
 }
+    
     .cta.disabled {
       background: linear-gradient(180deg, #c9c9c9, #bdbdbd);
       opacity:0.7;
@@ -408,6 +405,10 @@
 
   const messageEl = document.getElementById('message');
   const submitBtn = document.getElementById('submitBtn');
+  submitBtn.addEventListener('pointerdown', () => submitBtn.classList.add('is-pressed'));
+submitBtn.addEventListener('pointerup',   () => submitBtn.classList.remove('is-pressed'));
+submitBtn.addEventListener('pointerleave',() => submitBtn.classList.remove('is-pressed'));
+submitBtn.addEventListener('pointercancel',() => submitBtn.classList.remove('is-pressed'));
   const turnstileWrapper = document.getElementById('turnstileWrapper');
   const resultArea = document.getElementById('resultArea');
   const sentBox = document.getElementById('sentBox');
@@ -653,7 +654,7 @@
       submitBtn.classList.remove('disabled');
       submitBtn.setAttribute('aria-disabled','false');
     } else {
-      submitBtn.classList.add('disabled');
+      setTimeout(() => submitBtn.classList.add('disabled'), 120);
       submitBtn.setAttribute('aria-disabled','true');
     }
   }
