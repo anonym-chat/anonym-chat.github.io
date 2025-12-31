@@ -4,8 +4,8 @@
   "icon_url": "https://i.postimg.cc/Skjx90vJ/A40C1EE5-C87E-46D6-8EC4-A647F088CA85.jpg",
   "bg_type": "color",
   "banner_url": "https://i.postimg.cc/Skjx90vJ/A40C1EE5-C87E-46D6-8EC4-A647F088CA85.jpg",
-  "bg_color1": "#0ea5e9",
-  "bg_color2": "#7c3aed",
+  "bg_color1": "#440000"  // dunkler, kräftiger Rotton
+"bg_color2": "#110000"  // fast Schwarz
   "text_color": "light",
   "discord": "https://discord.gg/EDdtRnHKxv",
   "youtube": "https://www.youtube.com/channel/DEIN_CHANNEL",
