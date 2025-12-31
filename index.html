@@ -539,15 +539,7 @@ submitBtn.addEventListener('pointercancel',() => submitBtn.classList.remove('is-
     }
 
     // footer text if provided
-    if(cfg.footer_text) {
-      // append minimal footer under card (not interfering)
-      const footer = document.createElement('div');
-      footer.className = 'ownerSmall';
-      footer.style.marginTop = '8px';
-      footer.style.textAlign = 'center';
-      footer.textContent = cfg.footer_text;
-      document.getElementById('card').appendChild(footer);
-    }
+    
 
     // prepare tool buttons (always visible) - only if links present
     setupTools(cfg);
